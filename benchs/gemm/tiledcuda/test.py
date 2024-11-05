@@ -80,9 +80,9 @@ if __name__ == "__main__":
     kN = 4096
     kK = 2048
 
-    kTM = 128
-    kTN = 128
-    kTK = 64
+    kTM = 64
+    kTN = 256
+    kTK = 32
 
     kRK = 32
 

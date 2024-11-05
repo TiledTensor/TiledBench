@@ -20,7 +20,7 @@ def gemm(m: int,
 if __name__ == '__main__':
     M = 4096
     N = 4096
-    K = 2048
+    K = 4096
 
     device = torch.device("cuda")
     dtype = torch.float16

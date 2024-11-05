@@ -76,11 +76,11 @@ def run_test(
 if __name__ == "__main__":
     kM = 4096
     kN = 4096
-    kK = 2048
+    kK = 4096
 
-    kTM = 128
-    kTN = 128
-    kTK = 128
+    kTM = 64
+    kTN = 256
+    kTK = 32
 
     time = run_test(kM, kN, kK, kTM, kTN, kTK, (2, 2))
 

@@ -1,16 +1,14 @@
 import torch
 from torch import Tensor
 
-import os
-
-from .compile import Compile
+from compile import Compile
 
 __all__ = [
-    "gemm_func",
+    "fused_gemm_func",
 ]
 
 
-class GemmFunc(torch.autograd.Function):
+class FusedGemmFunc(torch.autograd.Function):
 
     @staticmethod
     def forward(
@@ -18,26 +16,28 @@ class GemmFunc(torch.autograd.Function):
         A: Tensor,
         B: Tensor,
         C: Tensor,
+        D: Tensor,
         M: int,
         N: int,
         K: int,
+        P: int,
         kTM: int,
         kTN: int,
         kTK: int,
+        kTP: int,
         kRK: int,
         warp_per_row: int,
         warp_per_col: int,
     ) -> Tensor:
-        tmp_dir = os.path.join(os.path.dirname(__file__), 'tmp')
-        builder = Compile(file_prefix="gemm", tmp_dir=tmp_dir)
-        lib_name = builder.compile(M, N, K, kTM, kTN, kTK, kRK, warp_per_row,
+        builder = Compile(file_prefix="fused_gemm", tmp_dir="tmp")
+        lib_name = builder.compile(M, N, K, P, kTM, kTN, kTK, kTP, kRK, warp_per_row,
                                    warp_per_col)
 
         if lib_name is None:
             raise RuntimeError("Failed to compile the library.")
 
-        builder.apply(lib_name, [A, B, C], device=0)
-        return C
+        builder.apply(lib_name, [A, B, C, D], device=0)
+        return D
 
 
-gemm_func = GemmFunc.apply
+fused_gemm_func = FusedGemmFunc.apply

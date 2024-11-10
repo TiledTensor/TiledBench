@@ -1,7 +1,9 @@
 import torch
 from torch import Tensor
 
-from compile import Compile
+import os
+
+from .compile import Compile
 
 __all__ = [
     "gemm_func",
@@ -25,7 +27,8 @@ class GemmFunc(torch.autograd.Function):
         warp_per_row: int,
         warp_per_col: int,
     ) -> Tensor:
-        builder = Compile(file_prefix="gemm", tmp_dir="tmp")
+        tmp_dir = os.path.join(os.path.dirname(__file__), 'tmp')
+        builder = Compile(file_prefix="gemm", tmp_dir=tmp_dir)
         lib_name = builder.compile(M, N, K, kTM, kTN, kTK, warp_per_row,
                                    warp_per_col)
 

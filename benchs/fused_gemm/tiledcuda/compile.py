@@ -51,10 +51,11 @@ class Compile:
         else:
             raise RuntimeError("Cannot find cuda path")
 
-    def _create_entry_code(self, M: int, N: int, K: int, kTM: int, kTN: int,
-                           kTK: int, kRK: int, warp_per_row: int,
+    def _create_entry_code(self, M: int, N: int, K: int, P: int, 
+                           kTM: int, kTN: int, kTK: int, kTP: int,
+                           kRK: int, warp_per_row: int,
                            warp_per_col: int):
-        entry_code_path = "tiledcuda/entry.py"
+        entry_code_path = "entry.py"
         spec = importlib.util.spec_from_file_location("binding",
                                                       entry_code_path)
         foo = importlib.util.module_from_spec(spec)
@@ -66,9 +67,11 @@ class Compile:
         shape["kM"] = M
         shape["kN"] = N
         shape["kK"] = K
+        shape["kP"] = P
         shape["kTM"] = kTM
         shape["kTN"] = kTN
         shape["kTK"] = kTK
+        shape["kTP"] = kTP
         shape["kRK"] = kRK
 
         return foo.config.format_map(shape) + foo.kernel_entry
@@ -77,9 +80,11 @@ class Compile:
                 M: int,
                 N: int,
                 K: int,
+                P: int,
                 kTM: int,
                 kTN: int,
                 kTK: int,
+                kTP: int,
                 kRK: int,
                 warp_per_row: int,
                 warp_per_col: int,
@@ -87,8 +92,8 @@ class Compile:
 
         temp_dir = self.tmp_dir
 
-        file_name = (f"{self.file_prefix}_{M}_{N}_{K}"
-                     f"_{kTM}_{kTN}_{kTK}_{kRK}_{warp_per_row}_{warp_per_col}")
+        file_name = (f"{self.file_prefix}_{M}_{N}_{K}_{P}"
+                     f"_{kTM}_{kTN}_{kTK}_{kTP}_{kRK}_{warp_per_row}_{warp_per_col}")
         lib_path = os.path.join(temp_dir, f"{file_name}.so")
 
         if os.path.exists(lib_path):

@@ -51,7 +51,7 @@ class Compile:
 
     def _create_entry_code(self, M: int, N: int, K: int, kTM: int, kTN: int,
                            kTK: int, warp_per_row: int, warp_per_col: int):
-        entry_code_path = "entry.py"
+        entry_code_path = "cutlass/entry.py"
         spec = importlib.util.spec_from_file_location("binding",
                                                       entry_code_path)
         foo = importlib.util.module_from_spec(spec)

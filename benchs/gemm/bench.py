@@ -156,4 +156,6 @@ if __name__ == "__main__":
     # print("Elapsed time: {:.4f} ms".format(time))
 
     # print(f"cutlass_time: {cutlass_time}, tiledcuda_time: {tiledcuda_time}")
+    print("(kM, kN, kK) (kTM, kTN, kTK)")
+    print("({}, {}, {}) ({}, {}, {})".format(kM, kN, kK, kTM, kTN, kTK))
     print("cublas_time: {:.4f} ms, cutlass_time: {:.4f} ms, tiledcuda_time: {:.4f} ms".format(cublas_time.item(), cutlass_time, tiledcuda_time))

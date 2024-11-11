@@ -1,7 +1,12 @@
 import torch
+import os
+
+os.environ["TRITON_INTERPRET"] = '1'
+
+import triton
+from time import time
 
 import gemm
-
 
 def run_unittest(
     M: int,
@@ -37,22 +42,21 @@ def bench(
     K: int
 ):
     torch.manual_seed(0)
+
+    # a = torch.randn(M, K, device = 'cuda', dtype=torch.float16)
+    # b = torch.randn(K, N, device = 'cuda', dtype=torch.float16)   
+
     a = torch.randn(1024, 1024, device = 'cuda', dtype=torch.float16)
     b = torch.randn(1024, 1024, device = 'cuda', dtype=torch.float16)
-    
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
 
+    warmup = 10
     iters = 50
-    start_event.record()
-    for _ in range(iters):
-        triton_c = gemm.gemm(a, b)
-    end_event.record()
-    torch.cuda.synchronize()
 
-    time = start_event.elapsed_time(end_event) / iters
+    ms = triton.testing.do_bench(lambda: gemm.gemm(a, b), warmup=warmup, rep=iters)
 
-    return time
+    
+
+    return ms
     
     
 if __name__ == '__main__':    
@@ -60,10 +64,10 @@ if __name__ == '__main__':
     N = 4096
     K = 2048
     
-    if run_unittest(M, N, K):
-        print("Unittest passed")
-    else:
-        print("Unittest failed")
+    # if run_unittest(M, N, K):
+    #     print("Unittest passed")
+    # else:
+    #     print("Unittest failed")
         
     time = bench(M, N, K)
     

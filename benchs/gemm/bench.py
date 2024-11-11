@@ -129,33 +129,42 @@ def run_tiledcuda_bench(
 
     return time
 
-
-if __name__ == "__main__":
-    kM = 4096
-    kN = 4096
-    kK = 2048
-
+def run_bench(
+    M: int,
+    N: int,
+    K: int,
+    kTM: int,
+    kTN: int,
+    kTK: int,
+    kRK: int,
+    warp_layout: Tuple,
+):  
     torch.manual_seed(1234)
 
-    a = torch.randn(kM, kK, device=torch.device("cuda"), dtype=torch.float16)
-    b = torch.randn(kN, kK, device=torch.device("cuda"), dtype=torch.float16)
-    c = torch.zeros(kM, kN, device=torch.device("cuda"), dtype=torch.float32)
+    a = torch.randn(M, K, device = 'cuda', dtype = torch.float16)
+    b = torch.randn(N, K, device = 'cuda', dtype = torch.float16)
+    c = torch.zeros(M, N, device = 'cuda', dtype = torch.float32)
+    
+    cublas_time = torch.zeros(1, device=torch.device("cpu"), dtype=torch.float32)
 
+    cublas_gemm(M, N, K, a, b, c, cublas_time, 50, 10)
+    cutlass_time = run_cutlass_bench(a, b, c, M, N, K, kTM, kTN, kTK, warp_layout)
+    tiledcuda_time = run_tiledcuda_bench(a, b, c, M, N, K, kTM, kTN, kTK, kRK, warp_layout)
+
+    print("(M, N, K) (kTM, kTN, kTK)")
+    print("({}, {}, {}) ({}, {}, {})".format(M, N, K, kTM, kTN, kTK))
+    print("cublas_time: {:.4f} ms, cutlass_time: {:.4f} ms, tiledcuda_time: {:.4f} ms".format(cublas_time.item(), cutlass_time, tiledcuda_time))
+
+
+if __name__ == "__main__":
     kTM = 64
     kTN = 256
     kTK = 32
 
     kRK = 32
 
-    cublas_time = torch.zeros(1, device=torch.device("cpu"), dtype=torch.float32)
+    run_bench(256, 256, 256, kTM, kTN, kTK, kRK, (2, 2))
+    run_bench(1024, 1024, 1024, kTM, kTN, kTK, kRK, (2, 2))
+    run_bench(4096, 4096, 2048, kTM, kTN, kTK, kRK, (2, 2))
+
     
-    cublas_gemm = run_cublas_bench(a, b, c, kM, kN, kK, cublas_time)
-    cutlass_time = run_cutlass_bench(a, b, c, kM, kN, kK, kTM, kTN, kTK, (2, 2))
-    tiledcuda_time = run_tiledcuda_bench(a, b, c, kM, kN, kK, kTM, kTN, kTK, kRK, (2, 2))
-
-    # print("Elapsed time: {:.4f} ms".format(time))
-
-    # print(f"cutlass_time: {cutlass_time}, tiledcuda_time: {tiledcuda_time}")
-    print("(kM, kN, kK) (kTM, kTN, kTK)")
-    print("({}, {}, {}) ({}, {}, {})".format(kM, kN, kK, kTM, kTN, kTK))
-    print("cublas_time: {:.4f} ms, cutlass_time: {:.4f} ms, tiledcuda_time: {:.4f} ms".format(cublas_time.item(), cutlass_time, tiledcuda_time))

@@ -4,7 +4,6 @@ import os
 os.environ["TRITON_INTERPRET"] = '1'
 
 import triton
-from time import time
 
 import gemm
 
@@ -15,7 +14,7 @@ def run_unittest(
     debug_print=False,
     epsilon: float = 5e-2
 ):  
-    torch.manual_seed(0)
+    torch.manual_seed(1234)
     a = torch.randn(M, K, device = 'cuda', dtype = torch.float16)
     b = torch.randn(K, N, device = 'cuda', dtype = torch.float16)
     
@@ -41,20 +40,15 @@ def bench(
     N: int,
     K: int
 ):
-    torch.manual_seed(0)
+    torch.manual_seed(1234)
 
-    # a = torch.randn(M, K, device = 'cuda', dtype=torch.float16)
-    # b = torch.randn(K, N, device = 'cuda', dtype=torch.float16)   
+    a = torch.randn(M, K, device = 'cuda', dtype=torch.float16)
+    b = torch.randn(K, N, device = 'cuda', dtype=torch.float16)   
 
-    a = torch.randn(1024, 1024, device = 'cuda', dtype=torch.float16)
-    b = torch.randn(1024, 1024, device = 'cuda', dtype=torch.float16)
-
-    warmup = 10
-    iters = 50
+    warmup = 5
+    iters = 20
 
     ms = triton.testing.do_bench(lambda: gemm.gemm(a, b), warmup=warmup, rep=iters)
-
-    
 
     return ms
     
@@ -64,11 +58,11 @@ if __name__ == '__main__':
     N = 4096
     K = 2048
     
-    # if run_unittest(M, N, K):
-    #     print("Unittest passed")
-    # else:
-    #     print("Unittest failed")
+    if run_unittest(M, N, K, True):
+        print("Unittest passed")
+    else:
+        print("Unittest failed")
         
-    time = bench(M, N, K)
+    # time = bench(M, N, K)
     
-    print("Elapsed time: {:.4f} ms".format(time))
+    # print("Elapsed time: {:.4f} ms".format(time))

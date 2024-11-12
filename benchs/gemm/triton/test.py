@@ -63,6 +63,5 @@ if __name__ == '__main__':
     else:
         print("Unittest failed")
         
-    # time = bench(M, N, K)
-    
-    # print("Elapsed time: {:.4f} ms".format(time))
+    time = bench(M, N, K)   
+    print("Elapsed time: {:.4f} ms".format(time))

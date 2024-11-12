@@ -272,5 +272,3 @@ if __name__ == "__main__":
     # run_bench(4096, 4096, 2048, 128, 32, 64, kRK, (2, 2), record_csv)
 
     record_csv.close()
-
-    

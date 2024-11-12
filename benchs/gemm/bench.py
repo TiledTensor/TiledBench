@@ -245,7 +245,10 @@ def run_bench(
 if __name__ == "__main__":
     kRK = 32
 
-    record = 'gemm_bench.csv'
+    device_id = torch.cuda.current_device()
+    device_name = torch.cuda.get_device_name(device_id).replace(" ", "_")
+
+    record = 'gemm_bench_{}.csv'.format(device_name)
     record_csv = open(record, 'a', newline='')  
 
     csv.writer(record_csv).writerow(["M", "N", "K", "kTM", "kTN", "kTK", "cuBLAS", "Cutlass", "TiledCUDA"])

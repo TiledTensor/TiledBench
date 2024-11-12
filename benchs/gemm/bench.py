@@ -3,6 +3,7 @@ from torch import Tensor
 from typing import Tuple
 import sys
 import os
+import csv
 
 cutlass_dir = os.path.join(os.path.dirname(__file__), 'cutlass')
 sys.path.insert(0, cutlass_dir)
@@ -219,6 +220,7 @@ def run_bench(
     kTK: int,
     kRK: int,
     warp_layout: Tuple,
+    record_csv = None
 ):  
     torch.manual_seed(1234)
 
@@ -237,29 +239,33 @@ def run_bench(
     print("({}, {}, {}) ({}, {}, {})".format(M, N, K, kTM, kTN, kTK))
     print("cublas_time: {:.4f} ms, cutlass_time: {:.4f} ms, tiledcuda_time: {:.4f} ms".format(cublas_time, cutlass_time, tiledcuda_time))
 
+    csv.writer(record_csv).writerow([M, N, K, kTM, kTN, kTK, cublas_time, cutlass_time, tiledcuda_time])
+
 
 if __name__ == "__main__":
-    # kTM = 64
-    # kTN = 256
-    # kTK = 32
-
-    kTM = 128
-    kTN = 64
-    kTK = 64
-
-
     kRK = 32
 
-    run_bench(1024, 1024, 1024, 64, 256, 32, kRK, (2, 2))
-    run_bench(4096, 4096, 512, 64, 256, 32, kRK, (2, 2))
-    run_bench(4096, 4096, 2048, 64, 256, 32, kRK, (2, 2))
+    record = 'gemm_bench.csv'
+    record_csv = open(record, 'a', newline='')  
 
-    run_bench(1024, 1024, 1024, 128, 64, 64, kRK, (2, 2))
-    run_bench(4096, 4096, 512, 128, 64, 64, kRK, (2, 2))
-    run_bench(4096, 4096, 2048, 128, 64, 64, kRK, (2, 2))
+    csv.writer(record_csv).writerow(["M", "N", "K", "kTM", "kTN", "kTK", "cuBLAS", "Cutlass", "TiledCUDA"])
 
-    run_bench(1024, 1024, 1024, 128, 128, 64, kRK, (2, 2))
-    run_bench(4096, 4096, 512, 128, 128, 64, kRK, (2, 2))
-    run_bench(4096, 4096, 2048, 128, 128, 64, kRK, (2, 2))
+    run_bench(4096, 4096, 2048, 128, 256, 64, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 64, 256, 32, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 128, 128, 32, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 128, 64, 32, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 64, 128, 32, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 128, 32, 32, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 32, 64, 32, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 128, 256, 128, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 256, 128, 128, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 256, 64, 128, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 64, 256, 128, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 128, 128, 128, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 128, 64, 64, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 64, 128, 64, kRK, (2, 2), record_csv)
+    run_bench(4096, 4096, 2048, 128, 32, 64, kRK, (2, 2), record_csv)
+
+    record_csv.close()
 
     

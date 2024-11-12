@@ -76,7 +76,7 @@ def run_test(
 if __name__ == "__main__":
     kM = 4096
     kN = 4096
-    kK = 4096
+    kK = 2048
 
     kTM = 64
     kTN = 256

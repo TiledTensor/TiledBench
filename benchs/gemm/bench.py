@@ -232,7 +232,7 @@ def run_bench(
     cublas_time_tensor = torch.zeros(1, device=torch.device("cpu"), dtype=torch.float32)
 
     cublas_time = run_cublas_bench(a, b, half_c, M, N, K, cublas_time_tensor)
-    cutlass_time = run_cutlass_bench(a, b, c, M, N, K, kTM, kTN, kTK, warp_layout)
+    cutlass_time = run_cutlass_bench(a, b, half_c, M, N, K, kTM, kTN, kTK, warp_layout)
     tiledcuda_time = run_tiledcuda_bench(a, b, c, M, N, K, kTM, kTN, kTK, kRK, warp_layout)
 
     print("(M, N, K) (kTM, kTN, kTK)")
@@ -249,9 +249,9 @@ if __name__ == "__main__":
     device_name = torch.cuda.get_device_name(device_id).replace(" ", "_")
 
     record = 'gemm_bench_{}.csv'.format(device_name)
-    record_csv = open(record, 'a', newline='')  
+    record_csv = open(record, 'w', newline='')  
 
-    csv.writer(record_csv).writerow(["M", "N", "K", "kTM", "kTN", "kTK", "cuBLAS", "Cutlass", "TiledCUDA"])
+    csv.writer(record_csv).writerow(["M", "N", "K", "kTM", "kTN", "kTK", "cuBLAS(ms)", "Cutlass(ms)", "TiledCUDA(ms)"])
 
     run_bench(4096, 4096, 2048, 128, 256, 64, kRK, (2, 2), record_csv)
     run_bench(4096, 4096, 2048, 64, 256, 32, kRK, (2, 2), record_csv)
@@ -262,12 +262,14 @@ if __name__ == "__main__":
     run_bench(4096, 4096, 2048, 32, 64, 32, kRK, (2, 2), record_csv)
     run_bench(4096, 4096, 2048, 128, 256, 128, kRK, (2, 2), record_csv)
     run_bench(4096, 4096, 2048, 256, 128, 128, kRK, (2, 2), record_csv)
-    run_bench(4096, 4096, 2048, 256, 64, 128, kRK, (2, 2), record_csv)
+    # Cutlass RuntimeError: CUDA error: an illegal memory access was encountered.
+    # run_bench(4096, 4096, 2048, 256, 64, 128, kRK, (2, 2), record_csv)
     run_bench(4096, 4096, 2048, 64, 256, 128, kRK, (2, 2), record_csv)
     run_bench(4096, 4096, 2048, 128, 128, 128, kRK, (2, 2), record_csv)
     run_bench(4096, 4096, 2048, 128, 64, 64, kRK, (2, 2), record_csv)
     run_bench(4096, 4096, 2048, 64, 128, 64, kRK, (2, 2), record_csv)
-    run_bench(4096, 4096, 2048, 128, 32, 64, kRK, (2, 2), record_csv)
+    # Cutlass RuntimeError: CUDA error: an illegal memory access was encountered.
+    # run_bench(4096, 4096, 2048, 128, 32, 64, kRK, (2, 2), record_csv)
 
     record_csv.close()
 

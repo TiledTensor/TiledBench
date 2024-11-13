@@ -115,12 +115,9 @@ def run_cublas_bench(
     K: int,
     time: Tensor
 ):
-    # Run unittest
     if run_cublas_unittest(a, b, c, M, N, K):
-        # print("Unittest passed")
         pass
     else:
-        # raise ValueError("Unittest failed")
         print("Run cuBLAS unittest failed")
         return float("NaN")
 
@@ -144,10 +141,8 @@ def run_cutlass_bench(
     warp_layout: Tuple,
 ):
     if run_cutlass_unittest(a, b, c, M, N, K, kTM, kTN, kTK, warp_layout):
-        # print("Unittest passed")
         pass
     else:
-        # raise ValueError("Unittest failed")
         print("Run Cutlass unittest failed")
         return float("NaN")
 
@@ -188,7 +183,6 @@ def run_tiledcuda_bench(
     if run_tiledcuda_unittest(a, b, c, M, N, K, kTM, kTN, kTK, kRK, warp_layout):
         pass
     else:
-        # raise ValueError("Unittest failed")
         print("Run TiledCUDA unittest failed")
         return float('NaN')
 
@@ -239,7 +233,7 @@ def run_bench(
     print("({}, {}, {}) ({}, {}, {})".format(M, N, K, kTM, kTN, kTK))
     print("cublas_time: {:.4f} ms, cutlass_time: {:.4f} ms, tiledcuda_time: {:.4f} ms".format(cublas_time, cutlass_time, tiledcuda_time))
 
-    csv.writer(record_csv).writerow([M, N, K, kTM, kTN, kTK, cublas_time, cutlass_time, tiledcuda_time])
+    csv.writer(record_csv).writerow([M, N, K, kTM, kTN, kTK, "{:.4f}".format(cublas_time), "{:.4f}".format(cutlass_time), "{:.4f}".format(tiledcuda_time)])
 
 
 if __name__ == "__main__":

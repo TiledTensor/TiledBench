@@ -265,4 +265,9 @@ if __name__ == "__main__":
     # Cutlass RuntimeError: CUDA error: an illegal memory access was encountered.
     # run_bench(4096, 4096, 2048, 128, 32, 64, kRK, (2, 2), record_csv)
 
+    run_bench(4096, 4096, 32, 64, 32, 32, kRK, (2, 2), record_csv)
+
+    run_bench(4096, 4096, 64, 128, 128, 64, kRK, (2, 2), record_csv)
+    
+
     record_csv.close()

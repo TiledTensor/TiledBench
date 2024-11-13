@@ -10,11 +10,11 @@ import torch
 __all__ = ["Compile"]
 
 cutlass_include_dir = os.path.join(os.path.dirname(__file__),
-                                   "../../../3rd-party/cutlass/include")
+                                   "../../../../3rd-party/cutlass/include")
 tiledcuda_include_dir = os.path.join(os.path.dirname(__file__),
-                                     "../../../3rd-party/TiledCUDA/include/")
+                                     "../../../../3rd-party/TiledCUDA/include/")
 utils_include_dir = os.path.join(os.path.dirname(__file__),
-                                 ("../../../3rd-party/TiledCUDA/examples/"
+                                 ("../../../../3rd-party/TiledCUDA/examples/"
                                   "cpp/01_gemm/02_gemm_all_mem"))
 
 

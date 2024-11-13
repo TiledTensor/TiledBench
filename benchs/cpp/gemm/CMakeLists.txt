@@ -14,5 +14,5 @@ include_directories("${THIRD_PARTY_DIR}/TiledCUDA/include")
 include_directories("${ROOT_DIR}/")
 include_directories("${PROJECT_SOURCE_DIR}/cutlass")
 
-cuda_add_library(bench_gemm SHARED bench.cu)
-target_link_libraries(bench_gemm ${TORCH_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
+add_executable(bench_gemm bench.cu)
+target_link_libraries(bench_gemm ${CUDA_CUBLAS_LIBRARIES})

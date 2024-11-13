@@ -2,10 +2,10 @@
 
 #include "utils/cpp/cuda_utils.cuh"
 #include "utils/cpp/cutlass/copy.cuh"
+#include "utils/cpp/cutlass/layout.cuh"
 #include "utils/cpp/cutlass/traits_base.cuh"
 
 namespace benchmarks {
-
 namespace cutlass_wrapper {
 
 using namespace cute;
@@ -31,9 +31,9 @@ struct KeGemmTraits : public Base {
     using SmemLayoutB =
         decltype(tile_to_shape(SmemLayoutAtom{}, Shape<Int<kTN>, Int<kTK>>{}));
 
-    using ThreadShape = TileShape<kThreadsPerRow, kThreadsPerCol>;
-    using LoadA_G2S =
-        G2SCopy2D<Element, ThreadShape, RowMajor<kTM, kTK, kK>, SmemLayoutA>;
+    // using ThreadShape = TileShape<kThreadsPerRow, kThreadsPerCol>;
+    using LoadA_G2S = G2SCopy2D<Element, kThreadsPerRow, kThreadsPerCol,
+                                RowMajor<kTM, kTK, kK>, SmemLayoutA>;
 
     // NOTE: the input matrix B: [kK, kN] is physically laid out in
     // a column major format, that is, the K dimension is contiguous
@@ -42,8 +42,8 @@ struct KeGemmTraits : public Base {
     // can use the `RowMajor` layout here.
     //   using ThreadShapeB = TileShape<kThreadsPerRow,
     //   kThreadsPerCol>;
-    using LoadB_G2S =
-        G2SCopy2D<Element, ThreadShape, RowMajor<kTN, kTK, kK>, SmemLayoutB>;
+    using LoadB_G2S = G2SCopy2D<Element, kThreadsPerRow, kThreadsPerCol,
+                                RowMajor<kTN, kTK, kK>, SmemLayoutB>;
 
     // TODO(ying): The current implementation uses ldmatrix.x4
     // instruction which requires the TileMMA configuration to be
@@ -58,7 +58,7 @@ struct KeGemmTraits : public Base {
     using StoreC_R2S = R2SCopy2D<Element, TiledMma, RowMajor<kTM, kTN>>;
 
     using StoreC_S2G =
-        S2GCopy2D<Element, ThreadShape,
+        S2GCopy2D<Element, kThreadsPerRow, kThreadsPerCol,
                   RowMajor<kTM, kTN> /*shared memory layout*/,
                   RowMajor<kTM, kTN, kN> /*global memory layout*/>;
 };
@@ -125,7 +125,6 @@ __global__ void KeCuteGemm(const Element* dA, const Element* dB, Element* dC) {
 }
 
 }  // namespace cutlass_wrapper
-
 }  // namespace benchmarks
 
 template <typename Element,                              //
@@ -159,12 +158,12 @@ void cute_gemm(const Element* dA, const Element* dB, Element* dC) {
             kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size);
     }
 
-    const int block_m = CeilDiv<kM, kTM>;
-    const int block_n = CeilDiv<kN, kTN>;
+    const int block_m = (kM + kTM - 1) / kTM;
+    const int block_n = (kN + kTN - 1) / kTN;
 
     const int kThreads = KeTraits::kThreads;
 
     dim3 gridDim(block_m, block_n);
     dim3 blockDim(kThreads, 1, 1);
-    kernel<<<gridDim, blockDim, smem_size>>>(A, B, C);
+    kernel<<<gridDim, blockDim, smem_size>>>(dA, dB, dC);
 }

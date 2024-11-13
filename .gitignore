@@ -1,5 +1,5 @@
 .vscode/*
-build/*
+**/build/*
 **/__pycache__/*
 **/tmp/*
 .DS_Store

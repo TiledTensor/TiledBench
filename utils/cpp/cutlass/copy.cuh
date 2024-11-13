@@ -83,14 +83,18 @@ DEVICE void copy_tile_s2g(const Element* src_data, Element* dst_data,
 // and S2G
 // @param ThreadsShape: the shape of the thread block, it should has
 // a type of TileShape.
-template <typename Element, typename ThreadsShape, typename SrcLayout,
-          typename DstLayout, typename Base = TraitsBase<Element>>
+template <typename Element,  //
+          const int kThreadsPerRow,
+          const int kThreadsPerCol,  //
+          typename SrcLayout,
+          typename DstLayout,  //
+          typename Base = TraitsBase<Element>>
 struct G2SCopy2D : public Base {
     using SrcLayout_ = SrcLayout;
     using DstLayout_ = DstLayout;
 
-    static constexpr int kThreadsPerRow = dim_size<0, ThreadsShape>;
-    static constexpr int kThreadsPerCol = dim_size<1, ThreadsShape>;
+    // static constexpr int kThreadsPerRow = dim_size<0, ThreadsShape>;
+    // static constexpr int kThreadsPerCol = dim_size<1, ThreadsShape>;
 
     using ThreadLayout = Layout<Shape<Int<kThreadsPerRow>, Int<kThreadsPerCol>>,
                                 Stride<Int<kThreadsPerCol>, _1>>;
@@ -128,14 +132,18 @@ struct G2SCopy2D : public Base {
 /// Copy from FractalTensor.
 // @param ThreadsShape: the shape of the thread block, it should has
 // a type of TileShape.
-template <typename Element, typename ThreadsShape, typename SrcLayout,
-          typename DstLayout, typename Base = TraitsBase<Element>>
+template <typename Element,  //
+          const int kThreadsPerRow,
+          const int kThreadsPerCol,  //
+          typename SrcLayout,
+          typename DstLayout,  //
+          typename Base = TraitsBase<Element>>
 struct S2GCopy2D : public Base {
     using SrcLayout_ = SrcLayout;
     using DstLayout_ = DstLayout;
 
-    static constexpr int kThreadsPerRow = dim_size<0, ThreadsShape>;
-    static constexpr int kThreadsPerCol = dim_size<1, ThreadsShape>;
+    // static constexpr int kThreadsPerRow = dim_size<0, ThreadsShape>;
+    // static constexpr int kThreadsPerCol = dim_size<1, ThreadsShape>;
 
     using ThreadLayout = Layout<Shape<Int<kThreadsPerRow>, Int<kThreadsPerCol>>,
                                 Stride<Int<kThreadsPerCol>, _1>>;

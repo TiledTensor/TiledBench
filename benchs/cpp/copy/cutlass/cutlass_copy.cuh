@@ -151,8 +151,6 @@ __global__ void copy_kernel(const Element* dA, const Element* dB, Element* dC) {
         for (int i = 0; i < rA.get_iters(); ++i) {
             rA.copy(i);  // load A register tile from shared memory
             rB.copy(i);  // load B register tile from shared memory
-
-            // gemm(mma, rA[i], rB[i], acc);
         }
         __syncthreads();
 
@@ -188,6 +186,39 @@ void cute_shared_copy(const Element* dA, const Element* dB, Element* dC) {
 
     auto kernel =
         &copy_shared_kernel<Element, kM, kN, kK, kTM, kTN, kTK, KeTraits>;
+
+    // maximal statically allocated smem per block
+    const int kMaxSmemPerBlock = 48 * 1024;
+    if (smem_size > kMaxSmemPerBlock) {
+        cudaFuncSetAttribute(
+            kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size);
+    }
+
+    const int block_m = (kM + kTM - 1) / kTM;
+    const int block_n = (kN + kTN - 1) / kTN;
+
+    const int kThreads = KeTraits::kThreads;
+
+    dim3 gridDim(block_m, block_n);
+    dim3 blockDim(kThreads, 1, 1);
+
+    kernel<<<gridDim, blockDim, smem_size>>>(dA, dB, dC);
+}
+
+template <typename Element,                              //
+          const int kWarpPerRow, const int kWarpPerCol,  //
+          const int kM, const int kN, const int kK,      //
+          const int kTM, const int kTN, const int kTK>
+void cute_copy(const Element* dA, const Element* dB, Element* dC) {
+    using namespace benchmarks::cutlass_wrapper;
+
+    using KeTraits = GemmTraits<Element, kWarpPerRow, kWarpPerCol, kM, kN, kK,
+                                kTM, kTN, kTK>;
+
+    static constexpr int smem_size =
+        std::max(kTK * (kTN + kTM), kTM * kTN) * sizeof(Element);
+
+    auto kernel = &copy_kernel<Element, kM, kN, kK, kTM, kTN, kTK, KeTraits>;
 
     // maximal statically allocated smem per block
     const int kMaxSmemPerBlock = 48 * 1024;

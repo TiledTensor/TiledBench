@@ -10,7 +10,6 @@ set(ROOT_DIR "${PROJECT_SOURCE_DIR}/../../../")
 
 include_directories("${THIRD_PARTY_DIR}/cutlass/include")
 include_directories("${THIRD_PARTY_DIR}/TiledCUDA/include")
-# include_directories("${THIRD_PARTY_DIR}/TiledCUDA/examples/cpp")
 
 include_directories("${ROOT_DIR}/")
 include_directories("${PROJECT_SOURCE_DIR}/cutlass")

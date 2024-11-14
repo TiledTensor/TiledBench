@@ -103,7 +103,7 @@ int main() {
 
     auto dev_name = benchmarks::get_device_name();
     std::stringstream file_name;
-    file_name << "bench_" << dev_name << "_gemm.csv";
+    file_name << "bench_" << dev_name << "_gemm.tsv";
     fout.open(file_name.str(), std::ios::out);
 
     fout << "[M, N, K]\t[kTM, kTN, kTK]\t[kWarpPerRow, kWarpPerCol]\t"

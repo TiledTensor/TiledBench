@@ -1,7 +1,5 @@
 #pragma once
 
-#include "utils/cpp/cutlass/traits_base.cuh"
-
 #include <cute/tensor.hpp>
 #include <cutlass/numeric_conversion.h>
 
@@ -77,101 +75,6 @@ DEVICE void copy_tile_s2g(const Element* src_data, Element* dst_data,
         for (int j = 0; j < int(size<2>(src)); ++j)
             cute::copy(tiled_copy, src(_, i, j), dst(_, i, j));
 }
-
-/// Copy from FractalTensor.
-// TODO(ying): Figure out how to use the same interface for both G2S
-// and S2G
-// @param ThreadsShape: the shape of the thread block, it should has
-// a type of TileShape.
-template <typename Element,  //
-          const int kThreadsPerRow,
-          const int kThreadsPerCol,  //
-          typename SrcLayout,
-          typename DstLayout,  //
-          typename Base = TraitsBase<Element>>
-struct G2SCopy2D : public Base {
-    using SrcLayout_ = SrcLayout;
-    using DstLayout_ = DstLayout;
-
-    // static constexpr int kThreadsPerRow = dim_size<0, ThreadsShape>;
-    // static constexpr int kThreadsPerCol = dim_size<1, ThreadsShape>;
-
-    using ThreadLayout = Layout<Shape<Int<kThreadsPerRow>, Int<kThreadsPerCol>>,
-                                Stride<Int<kThreadsPerCol>, _1>>;
-#if defined(CP_ASYNC_ENABLED)
-    using CopyInst =
-        Copy_Atom<SM80_CP_ASYNC_CACHEGLOBAL<cute::uint128_t>, Element>;
-#else
-    using CopyInst = Copy_Atom<DefaultCopy, Element>;
-#endif
-    using TiledCopy = decltype(make_tiled_copy(
-        CopyInst{}, ThreadLayout{},
-        Layout<Shape<_1, Int<Base::kNumPerAccess>>>{}));
-
-  public:
-    DEVICE void copy(const Element* src_data, Element* trg_data, int tid) {
-        auto gtile = make_tensor(make_gmem_ptr(src_data), SrcLayout_{});
-        auto stile = make_tensor(make_smem_ptr(trg_data), DstLayout_{});
-
-        auto loader = tiled_copy_.get_thread_slice(tid);
-
-        auto src = loader.partition_S(gtile);
-        auto dst = loader.partition_D(stile);
-
-#pragma unroll
-        for (int i = 0; i < int(size<1>(src)); ++i)
-#pragma unroll
-            for (int j = 0; j < int(size<2>(src)); ++j)
-                cute::copy(tiled_copy_, src(_, i, j), dst(_, i, j));
-    }
-
-  private:
-    TiledCopy tiled_copy_;
-};
-
-/// Copy from FractalTensor.
-// @param ThreadsShape: the shape of the thread block, it should has
-// a type of TileShape.
-template <typename Element,  //
-          const int kThreadsPerRow,
-          const int kThreadsPerCol,  //
-          typename SrcLayout,
-          typename DstLayout,  //
-          typename Base = TraitsBase<Element>>
-struct S2GCopy2D : public Base {
-    using SrcLayout_ = SrcLayout;
-    using DstLayout_ = DstLayout;
-
-    // static constexpr int kThreadsPerRow = dim_size<0, ThreadsShape>;
-    // static constexpr int kThreadsPerCol = dim_size<1, ThreadsShape>;
-
-    using ThreadLayout = Layout<Shape<Int<kThreadsPerRow>, Int<kThreadsPerCol>>,
-                                Stride<Int<kThreadsPerCol>, _1>>;
-
-    using TiledCopy = decltype(make_tiled_copy(
-        Copy_Atom<DefaultCopy, Element>{}, ThreadLayout{},
-        Layout<Shape<_1, Int<Base::kNumPerAccess>>>{}));
-
-  public:
-    DEVICE void copy(const Element* src_data, Element* trg_data, int tid) {
-        auto stile = make_tensor(make_smem_ptr(src_data), SrcLayout_{});
-        auto gtile = make_tensor(make_gmem_ptr(trg_data), DstLayout_{});
-
-        auto loader = tiled_copy_.get_thread_slice(tid);
-
-        auto src = loader.partition_S(stile);
-        auto dst = loader.partition_D(gtile);
-
-#pragma unroll
-        for (int i = 0; i < int(size<1>(src)); ++i)
-#pragma unroll
-            for (int j = 0; j < int(size<2>(src)); ++j)
-                cute::copy(tiled_copy_, src(_, i, j), dst(_, i, j));
-    }
-
-  private:
-    TiledCopy tiled_copy_;
-};
 
 template <typename Element, typename TiledMma_, typename DstLayout>
 struct R2SCopy2D {

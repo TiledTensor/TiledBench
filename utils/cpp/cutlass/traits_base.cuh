@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cutlass/numeric_size.h>
-
 namespace benchmarks {
 namespace cutlass_wrapper {
 

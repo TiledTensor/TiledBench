@@ -136,9 +136,6 @@ void run_test(std::ofstream& fout) {
     cudaDeviceSynchronize();
     float tiledcuda_time2 = timer.stop() / iters;
 
-    float cutlass_time3 = cutlass_time2 - cutlass_time;
-    float tiledcuda_time3 = tiledcuda_time2 - tiledcuda_time;
-
     std::cout << "Whole\t" << "[" << kM << ", " << kN << ", " << kK << "]\t["
               << kTM << ", " << kTN << ", " << kTK << "]\t[" << kWarpPerRow
               << ", " << kWarpPerCol << "]\t" << cutlass_time2 << "\t"
@@ -151,12 +148,6 @@ void run_test(std::ofstream& fout) {
               << tiledcuda_time << "\t" << tiledcuda_time / cutlass_time
               << std::endl;
 
-    std::cout << "S2R\t" << "[" << kM << ", " << kN << ", " << kK << "]\t["
-              << kTM << ", " << kTN << ", " << kTK << "]\t[" << kWarpPerRow
-              << ", " << kWarpPerCol << "]\t" << cutlass_time3 << "\t"
-              << tiledcuda_time3 << "\t" << tiledcuda_time3 / cutlass_time3
-              << std::endl;
-
     fout << "Whole\t" << "[" << kM << ", " << kN << ", " << kK << "]\t[" << kTM
          << ", " << kTN << ", " << kTK << "]\t[" << kWarpPerRow << ", "
          << kWarpPerCol << "]\t" << cutlass_time2 << "\t" << tiledcuda_time2
@@ -166,11 +157,6 @@ void run_test(std::ofstream& fout) {
          << ", " << kTN << ", " << kTK << "]\t[" << kWarpPerRow << ", "
          << kWarpPerCol << "]\t" << cutlass_time << "\t" << tiledcuda_time
          << "\t" << tiledcuda_time / cutlass_time << std::endl;
-
-    fout << "S2R\t" << "[" << kM << ", " << kN << ", " << kK << "]\t[" << kTM
-         << ", " << kTN << ", " << kTK << "]\t[" << kWarpPerRow << ", "
-         << kWarpPerCol << "]\t" << cutlass_time3 << "\t" << tiledcuda_time3
-         << "\t" << tiledcuda_time3 / cutlass_time3 << std::endl;
 }
 
 int main() {
@@ -180,7 +166,7 @@ int main() {
 
     auto dev_name = benchmarks::get_device_name();
     std::stringstream file_name;
-    file_name << "bench_" << dev_name << "_copy.csv";
+    file_name << "bench_" << dev_name << "_copy.tsv";
     fout.open(file_name.str(), std::ios::out);
 
     fout << "Copy Type\t"

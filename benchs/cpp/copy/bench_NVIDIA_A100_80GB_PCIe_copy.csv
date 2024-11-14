@@ -1,4 +1,0 @@
-Copy Type	[M, N, K]	[kTM, kTN, kTK]	[kWarpPerRow, kWarpPerCol]	CutlassTime(ms)	TiledCUDATime(ms)	Ratio
-Whole	[4096, 4096, 2048]	[64, 32, 32]	[2, 2]	0.5805	1.0878	1.8740
-G2S	[4096, 4096, 2048]	[64, 32, 32]	[2, 2]	0.5804	1.0869	1.8728
-S2R	[4096, 4096, 2048]	[64, 32, 32]	[2, 2]	0.0002	0.0010	6.3329

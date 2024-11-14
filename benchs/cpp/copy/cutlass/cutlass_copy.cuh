@@ -77,7 +77,49 @@ struct GemmTraits : public Base {
 
 template <typename Element, const int kM, const int kN, const int kK,
           const int kTM, const int kTN, const int kTK, typename KeTraits>
-__global__ void gemm_kernel(const Element* dA, const Element* dB, Element* dC) {
+__global__ void copy_shared_kernel(const Element* dA, const Element* dB,
+                                   Element* dC) {
+    extern __shared__ __align__(sizeof(double)) unsigned char buf_[];
+    auto* buf = reinterpret_cast<Element*>(buf_);
+
+    // Advance to the global data tile to the current CTA.
+    Element* gA_ptr = const_cast<Element*>(dA) + blockIdx.x * kK * kTM;
+    Element* gB_ptr = const_cast<Element*>(dB) + blockIdx.y * kK * kTN;
+    Element* gC_ptr = dC + blockIdx.x * kTM * kN + blockIdx.y * kTN;
+
+    // pointers to shared memory tiles
+    Element* sA_ptr = buf;
+    Element* sB_ptr = buf + kTM * kTK;
+    Element* sC_ptr = buf;
+
+    typename KeTraits::TiledMma mma;
+    typename KeTraits::TiledCopyG2S tiled_copy;
+
+    auto rA = make_s2rA(sA_ptr, typename KeTraits::SmemLayoutA{}, mma);
+    auto rB = make_s2rB(sB_ptr, typename KeTraits::SmemLayoutB{}, mma);
+    auto acc = get_acc<kTM, kTN>(mma);
+
+    for (int k = 0; k < kK; k += kTK) {
+        copy_tile_g2s(gA_ptr, sA_ptr, typename KeTraits::GmemLayoutA{},
+                      typename KeTraits::SmemLayoutA{}, tiled_copy);
+        copy_tile_g2s(gB_ptr, sB_ptr, typename KeTraits::GmemLayoutB{},
+                      typename KeTraits::SmemLayoutB{}, tiled_copy);
+        __copy_async();
+        __syncthreads();
+
+        gA_ptr += kTK;
+        gB_ptr += kTK;
+    }
+
+    // store shared memory tile to global memory
+    copy_tile_s2g(sC_ptr, gC_ptr, typename KeTraits::SmemLayoutC{},
+                  typename KeTraits::GmemLayoutC{},
+                  typename KeTraits::TiledCopyS2G{});
+}
+
+template <typename Element, const int kM, const int kN, const int kK,
+          const int kTM, const int kTN, const int kTK, typename KeTraits>
+__global__ void copy_kernel(const Element* dA, const Element* dB, Element* dC) {
     extern __shared__ __align__(sizeof(double)) unsigned char buf_[];
     auto* buf = reinterpret_cast<Element*>(buf_);
 
@@ -110,7 +152,7 @@ __global__ void gemm_kernel(const Element* dA, const Element* dB, Element* dC) {
             rA.copy(i);  // load A register tile from shared memory
             rB.copy(i);  // load B register tile from shared memory
 
-            gemm(mma, rA[i], rB[i], acc);
+            // gemm(mma, rA[i], rB[i], acc);
         }
         __syncthreads();
 
@@ -127,6 +169,7 @@ __global__ void gemm_kernel(const Element* dA, const Element* dB, Element* dC) {
                   typename KeTraits::GmemLayoutC{},
                   typename KeTraits::TiledCopyS2G{});
 }
+
 }  // namespace cutlass_wrapper
 }  // namespace benchmarks
 
@@ -134,7 +177,7 @@ template <typename Element,                              //
           const int kWarpPerRow, const int kWarpPerCol,  //
           const int kM, const int kN, const int kK,      //
           const int kTM, const int kTN, const int kTK>
-void cute_gemm(const Element* dA, const Element* dB, Element* dC) {
+void cute_shared_copy(const Element* dA, const Element* dB, Element* dC) {
     using namespace benchmarks::cutlass_wrapper;
 
     using KeTraits = GemmTraits<Element, kWarpPerRow, kWarpPerCol, kM, kN, kK,
@@ -143,7 +186,8 @@ void cute_gemm(const Element* dA, const Element* dB, Element* dC) {
     static constexpr int smem_size =
         std::max(kTK * (kTN + kTM), kTM * kTN) * sizeof(Element);
 
-    auto kernel = &gemm_kernel<Element, kM, kN, kK, kTM, kTN, kTK, KeTraits>;
+    auto kernel =
+        &copy_shared_kernel<Element, kM, kN, kK, kTM, kTN, kTK, KeTraits>;
 
     // maximal statically allocated smem per block
     const int kMaxSmemPerBlock = 48 * 1024;

@@ -112,7 +112,6 @@ __global__ void gemm_kernel(const Element* dA, const Element* dB, Element* dC) {
 
             gemm(mma, rA[i], rB[i], acc);
         }
-        __syncthreads();
 
         gA_ptr += kTK;
         gB_ptr += kTK;

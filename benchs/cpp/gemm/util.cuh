@@ -1,6 +1,8 @@
 #pragma once
 
-#include "utils/cpp/cuda_timer.cuh"
+#include "cutlass_gemm.cuh"
+#include "tiledcuda_gemm.cuh"
+#include "util/cuda_timer.hpp"
 
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
@@ -9,16 +11,78 @@
 
 using namespace benchmarks;
 
-float rand_float(float a = 1e-4, float b = 1e-2) {
+float rand_float(float a = 1e-4, float b = 5e-3) {
     float random = ((float)rand()) / (float)RAND_MAX;
     float diff = b - a;
     float r = random * diff;
     return a + r;
 }
 
-float cublas_hgemm(int64_t kM, int64_t kN, int64_t kK,  // problem shape
-                   const __half* A, const __half* B, __half* C,
-                   bool timeit = false, int warm_up = 5, int iters = 20) {
+namespace {
+bool check_results_impl(const __half* values1, const float* values2,
+                        int numel) {
+    bool passed = true;
+    const float epsilon = 1e-3;
+
+    double total_diff = 0.;
+    double max_abs_diff = FLT_MIN;
+    double diff = 0.;
+
+#ifdef DEBUG
+    int cut_off = 128;
+    printf("ground truth:\n");
+    for (int i = 0; i < cut_off; ++i) {
+        printf("%.5f, ", __half2float(values1[i]));
+        if (i && (i + 1) % 16 == 0) printf("\n");
+    }
+    printf("\ncomputed values:\n");
+    for (int i = 0; i < cut_off; ++i) {
+        printf("%.5f, ", values2[i]);
+        if (i && (i + 1) % 16 == 0) printf("\n");
+    }
+#endif
+
+    for (int i = 0; i < numel; ++i) {
+        float v1 = __half2float(values1[i]);
+        float v2 = values2[i];
+
+        diff = fabs(v1 - v2);
+        max_abs_diff = max_abs_diff < diff ? diff : max_abs_diff;
+        total_diff += diff;
+
+#ifdef DEBUG
+        if (diff > epsilon) {
+            printf("the %d-th value differs (%.4f): %.4f vs. %.4f\n", i, diff,
+                   v1, v2);
+        }
+#endif
+    }
+
+    double avg_diff = total_diff / numel;
+    if (avg_diff > epsilon) passed = false;
+
+    return passed;
+}
+}  // namespace
+
+template <typename T>
+bool check_results(const T* values1_, const float* values2, int numel);
+
+template <>
+bool check_results(const cutlass::half_t* values1_, const float* values2,
+                   int numel) {
+    const __half* values1 = reinterpret_cast<const __half*>(values1_);
+    return check_results_impl(values1, values2, numel);
+}
+
+template <>
+bool check_results(const __half* values1, const float* values2, int numel) {
+    return check_results_impl(values1, values2, numel);
+}
+
+float cublas_hgemm(int64_t kM, int64_t kN, int64_t kK, const __half* A,
+                   const __half* B, __half* C, bool timeit = false,
+                   int warm_up = 5, int iters = 20) {
     cublasHandle_t handle;
     cublasCreate(&handle);
 
@@ -50,48 +114,4 @@ float cublas_hgemm(int64_t kM, int64_t kN, int64_t kK,  // problem shape
 
     cublasDestroy(handle);
     return elapsed;
-}
-
-bool check_results(const cutlass::half_t* values1, const __half* values2,
-                   int numel) {
-    bool passed = true;
-    const float epsilon = 1e-3;
-
-    double total_diff = 0.;
-    double max_abs_diff = FLT_MIN;
-    double diff = 0.;
-
-#ifdef DEBUG
-    int cut_off = 128;
-    printf("ground truth:\n");
-    for (int i = 0; i < cut_off; ++i) {
-        printf("%.3f, ", __half2float(values2[i]));
-        if (i && (i + 1) % 16 == 0) printf("\n");
-    }
-    printf("\ncomputed values:\n");
-    for (int i = 0; i < cut_off; ++i) {
-        printf("%.3f, ", cutlass::half_t::convert(values1[i]));
-        if (i && (i + 1) % 16 == 0) printf("\n");
-    }
-#endif
-
-    for (int i = 0; i < numel; ++i) {
-        float v1 = cutlass::half_t::convert(values1[i]);
-        float v2 = __half2float(values2[i]);
-        diff = fabs(v1 - v2);
-        max_abs_diff = max_abs_diff < diff ? diff : max_abs_diff;
-        total_diff += diff;
-
-#ifdef DEBUG
-        if (diff > epsilon) {
-            printf("the %d-th value differs (%.4f): %.4f vs. %.4f\n", i, diff,
-                   v1, v2);
-        }
-#endif
-    }
-
-    double avg_diff = total_diff / numel;
-    if (avg_diff > epsilon) passed = false;
-
-    return passed;
 }
